@@ -11,7 +11,7 @@ app.set('view engine', 'ejs');
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(express.static("public"));
 
-mongoose.connect('mongodb://localhost:27017/todolistDB', {useNewUrlParser: true, useUnifiedTopology: true})
+mongoose.connect('mongodb://localhost:27017/todolistDB', {useNewUrlParser: true, useUnifiedTopology: true, useFindAndModify: false})
 
 const itemsSchema = mongoose.Schema({
   item: {
@@ -45,12 +45,8 @@ const defaultItems = [item1, item2, item3]
 const workItems = [];
 
 app.get("/", function(req, res) {
-  
-  
 
   Item.find({}, function(err, foundItems) {
-
-    if (err) return;
     
     if (foundItems.length == 0) {
       Item.insertMany(defaultItems, (err) => {
@@ -77,6 +73,19 @@ app.post("/", function(req, res){
   res.redirect('/');
 
 });
+
+app.post('/delete', (req, res) => {
+  const id = req.body.delete;
+  Item.findByIdAndRemove(id, function(err){
+    if (err) console.log(err);
+    else {
+      console.log('No errors, successfuly deleted selected items')
+      res.redirect('/');
+    }
+  })
+
+
+})
 
 
 
