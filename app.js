@@ -2,7 +2,7 @@
 
 const express = require("express");
 const bodyParser = require("body-parser");
-const date = require(__dirname + "/date.js");
+const mongoose = require("mongoose");
 
 const app = express();
 
@@ -11,29 +11,74 @@ app.set('view engine', 'ejs');
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(express.static("public"));
 
-const items = ["Buy Food", "Cook Food", "Eat Food"];
+mongoose.connect('mongodb://localhost:27017/todolistDB', {useNewUrlParser: true, useUnifiedTopology: true})
+
+const itemsSchema = mongoose.Schema({
+  item: {
+    type: String,
+    required: true
+  }
+});
+const Item = mongoose.model('Item', itemsSchema);
+const item1 = new Item({
+  item: 'Welcome to your todolist'
+})
+
+const item2 = new Item({
+  item: 'Hit the + button to add a new item'
+})
+
+const item3 = new Item({
+  item: '←  Hit this to delete an item'
+})
+
+const defaultItems = [item1, item2, item3]
+
+
+// Item.insertMany(items, function(err) {
+//   if (err) console.log(err)
+//   else console.log('insert successful')
+// })
+
+
+
 const workItems = [];
 
 app.get("/", function(req, res) {
+  
+  
 
-const day = date.getDate();
+  Item.find({}, function(err, foundItems) {
 
-  res.render("list", {listTitle: day, newListItems: items});
+    if (err) return;
+    
+    if (foundItems.length == 0) {
+      Item.insertMany(defaultItems, (err) => {
+        if (err) console.log(err);
+        else console.log('success')
+        res.redirect('/')
+      })
+      
+    } else {
+      res.render("list", {listTitle: 'Today', newListItems: foundItems});
+    }
+  })
 
 });
 
 app.post("/", function(req, res){
 
-  const item = req.body.newItem;
+  const item = new Item({
+    item: String(req.body.newItem)
+  });
 
-  if (req.body.list === "Work") {
-    workItems.push(item);
-    res.redirect("/work");
-  } else {
-    items.push(item);
-    res.redirect("/");
-  }
+  item.save();
+
+  res.redirect('/');
+
 });
+
+
 
 app.get("/work", function(req,res){
   res.render("list", {listTitle: "Work List", newListItems: workItems});
