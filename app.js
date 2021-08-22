@@ -3,6 +3,7 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
+const lodash = require('lodash');
 
 const app = express();
 
@@ -84,7 +85,7 @@ app.post("/", function(req, res){
     List.findOne({name: listName}, function(err, list){
       list.items.push(item)
       list.save()
-      res.redirect('/' + listName);
+      res.redirect('/' + lodash.lowerCase(listName));
     })
   }
 
@@ -92,29 +93,41 @@ app.post("/", function(req, res){
 
 app.post('/delete', (req, res) => {
   const id = req.body.delete;
-  Item.findByIdAndRemove(id, function(err){
-    if (err) console.log(err);
-    else {
-      console.log('No errors, successfuly deleted selected items')
-      res.redirect('/');
-    }
-  })
+  const listName = req.body.listName;
+
+  if (listName == 'Today') {
+    Item.findByIdAndRemove(id, function(err){
+      if (err) console.log(err);
+      else {
+        console.log('No errors, successfuly deleted selected items')
+        res.redirect('/');
+      }
+    })
+  } else {
+    List.findOneAndUpdate(
+      {name: listName},
+      {$pull: {items: {_id: id}}},
+      function(err, list){
+        if (!err) {
+          res.redirect('/' + lodash.lowerCase(listName));
+        }
+      }
+    )
+  }
+
+  
 
 
 })
 
 
 app.get('/:name', function(req, res){
-  // const list = new List({
-  //   name: req.params.name,
-  //   items: defaultItems
-  // });
 
-  List.findOne({name: req.params.name}, function(err, list){
+  List.findOne({name: lodash.capitalize(req.params.name)}, function(err, list){
     if (!err) {
       if (!list) {
         console.log('doesnt exist')
-        const newlist = new List({name: req.params.name, items: defaultItems})
+        const newlist = new List({name: lodash.capitalize(req.params.name), items: defaultItems})
         newlist.save()
         res.redirect('/' + req.params.name)
       } else {
